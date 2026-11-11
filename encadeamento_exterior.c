@@ -34,8 +34,58 @@ void imprime_arquivos(char *nome_arquivo_hash, char *nome_arquivo_dados) {
  * Retorna o endereco (lógico) onde o cliente foi encontrado, ou -1 se nao for encontrado
  */
 int busca(int cod_cli, char *nome_arquivo_hash, char *nome_arquivo_dados, int m) {
-    //TODO: Implementar essa função
-    return INT_MAX;
+    int h = cod_cli % m;
+    if (h < 0) {
+        h += m;
+    }
+
+    FILE *arq_hash = fopen(nome_arquivo_hash, "rb");
+    if (!arq_hash) {
+        return -1;
+    }
+
+    fseek(arq_hash, h * tamanho_compartimento(), SEEK_SET);
+    TCompartimento *comp = le_compartimento(arq_hash);
+    fclose(arq_hash);
+
+    if (!comp) {
+        return -1;
+    }
+
+    int pont = comp->prox;
+    free(comp);
+
+    if (pont == -1) {
+        return -1;
+    }
+
+    FILE *arq_dados = fopen(nome_arquivo_dados, "rb");
+    if (!arq_dados) {
+        return -1;
+    }
+
+    while (pont != -1) {
+        fseek(arq_dados, pont * tamanho_cliente(), SEEK_SET);
+        TCliente *cli = le_cliente(arq_dados);
+        if (!cli) {
+            break;
+        }
+
+        imprime_cliente(cli);
+
+        if (cli->cod == cod_cli && cli->ocupado == 1) {
+            int pos_encontrada = pont;
+            free(cli);
+            fclose(arq_dados);
+            return pos_encontrada;
+        }
+
+        pont = cli->prox;
+        free(cli);
+    }
+
+    fclose(arq_dados);
+    return -1;
 }
 
 int main() {
